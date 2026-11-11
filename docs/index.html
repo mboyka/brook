@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html theme-mode="light">
+
+<head>
+    <title>Brook Script Gallery</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="images/brook_circle.png" />
+    <link rel="stylesheet" href="static/tdesign.min.css" />
+    <link rel="stylesheet" href="static/theme.css" />
+    <script src="static/vue.min.js"></script>
+    <script src="static/vue-composition-api.prod.js"></script>
+    <script src="static/tdesign.min.js"></script>
+
+    <style>
+        html,
+        body,
+        #app {
+            margin: 0;
+            padding: 0;
+            height: 100dvh;
+        }
+    </style>
+
+    <script type="module">
+        window.addEventListener("DOMContentLoaded", async (e) => {
+            Vue.use(TDesign);
+            new Vue({
+                el: '#app',
+                data() {
+                    return {
+                        zh: navigator.language.toLowerCase().startsWith("zh-"),
+                        wx: navigator.userAgent.toLowerCase().indexOf("micromessenger") != -1,
+                        mob: /iPhone|iPod|Android/i.test(navigator.userAgent),
+                        ing: false,
+                        list: [],
+                        err: false,
+                        error: '',
+                    }
+                },
+                async mounted() {
+                    this.ing = true;
+                    try {
+                        var res = await fetch('https://raw.githubusercontent.com/txthinking/brook/refs/heads/master/programmable/gallery.json')
+                        if (res.status != 200) throw await res.text()
+                        this.list = JSON.parse(await res.text())
+                    } catch (e) {
+                        this.err = true
+                        this.error = e.toString()
+                    }
+                    this.ing = false;
+                },
+                methods: {
+                    async expand(v) {
+                        this.ing = true;
+                        try {
+                            v.expanded = !v.expanded
+                            if (!v.script && v.expanded) {
+                                var res = await fetch(v.url)
+                                if (res.status != 200) throw await res.text()
+                                v.script = await res.text()
+                            }
+                        } catch (e) {
+                            this.err = true
+                            this.error = e.toString()
+                        }
+                        this.ing = false;
+                    },
+                    async copy(s) {
+                        await navigator.clipboard.writeText(s)
+                    },
+                    async confirm(e) {
+                        this.err = false
+                        this.error = ''
+                    },
+                    async close(e) {
+                        this.err = false
+                        this.error = ''
+                    },
+                },
+            })
+        });
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <t-layout :style="'display: flex;flex-direction: column;height: 100%;'">
+            <t-header style="flex-shrink: 0;">
+                <t-head-menu value="null">
+                    <template #logo>
+                        <h1>Brook Script Gallery</h1>
+                    </template>
+                    <t-menu-item v-if="!mob" target="_blank" href="https://www.txthinking.com/brook.html">Docs</t-menu-item>
+                    <t-menu-item v-if="!mob" target="_blank" href="https://www.txthinking.com/talks/">Talks</t-menu-item>
+                    <t-menu-item v-if="!mob" target="_blank" href="https://youtube.com/txthinking">YouTube</t-menu-item>
+                    <template #operations>
+                        <t-tooltip placement="bottom" content="Talks" v-if="mob">
+                            <t-button theme="default" shape="square" variant="text" href="https://www.txthinking.com/talks/" target="_blank">
+                                <t-icon name="book-open"></t-icon>
+                            </t-button>
+                        </t-tooltip>
+                        <t-tooltip placement="bottom" content="YouTube" v-if="mob">
+                            <t-button theme="default" shape="square" variant="text" href="https://www.youtube.com/txthinking" target="_blank">
+                                <t-icon name="logo-youtube"></t-icon>
+                            </t-button>
+                        </t-tooltip>
+                        <t-tooltip placement="bottom" content="GitHub" v-if="mob">
+                            <t-button theme="default" shape="square" variant="text" href="https://github.com/txthinking" target="_blank">
+                                <t-icon name="logo-github"></t-icon>
+                            </t-button>
+                        </t-tooltip>
+                        <t-divider layout="vertical" v-if="mob"></t-divider>
+                        <t-tooltip placement="bottom" content="Add">
+                            <t-button theme="default" shape="square" variant="text" href="https://github.com/txthinking/brook/blob/master/programmable" target="_blank">
+                                <t-icon name="add-circle"></t-icon>
+                            </t-button>
+                        </t-tooltip>
+                    </template>
+                </t-head-menu>
+            </t-header>
+            <t-content style="flex-grow:1;overflow-y:scroll;" id="top">
+                <div style="height:100%;display: flex;flex-direction: column;padding: 15px 15px 0 15px;box-sizing:border-box;">
+                    <div style="flex-grow:1;">
+                        <div style="display: flex;flex-wrap: wrap;gap:15px;">
+                            <t-card :bordered="false" v-for="item in list" :style="item.expanded ? 'width:100%' : 'max-width:100%'">
+                                <div style="display: flex;flex-direction: column;">
+                                    <t-collapse :borderless="true" @change="expand(item)">
+                                        <t-collapse-panel :header="item.name">
+                                            <div style="display: flex;justify-content: space-between;align-items:center">
+                                                <div style="flex-grow:1;overflow-x:hidden;text-overflow: ellipsis;white-space:nowrap">{{item.url}}</div>
+                                                <t-button style="flex-shrink: 0;" theme="default" shape="square" variant="text" @click="copy(item.url)">
+                                                    <t-icon name="copy"></t-icon>
+                                                </t-button>
+                                            </div>
+                                            <pre style="width:100%;padding:1rem;overflow-x:scroll;font-size:85%;line-height: 1.45;color:#1f2328;background-color: #f6f8fa;border-radius:6px;"><code style="display: inline;padding:0px;margin:0px;overflow:visible;word-wrap:normal;background-color:transparent;border:0">{{item.script}}</code></pre>
+                                        </t-collapse-panel>
+                                    </t-collapse>
+                                    <div style="display: flex;justify-content:space-around;align-items:center">
+                                        <div style="display: flex;gap:15px;" v-if="item.kind=='dnsserver'">
+                                            <t-tooltip content="brook dnsserver, dohserver, dnsserveroverbrook">
+                                                <t-tag shape="round" variant="outline">DNS Server</t-tag>
+                                            </t-tooltip>
+                                        </div>
+                                        <div style="display: flex;gap:15px;" v-if="item.kind=='server'">
+                                            <t-tooltip content="brook server, wsserver, wssserver, quicserver">
+                                                <t-tag shape="round" variant="outline">Server</t-tag>
+                                            </t-tooltip>
+                                        </div>
+                                        <div style="display: flex;gap:15px;" v-if="item.kind=='client'">
+                                            <t-tooltip content="ipio">
+                                                <t-tag shape="round" variant="outline">ipio</t-tag>
+                                            </t-tooltip>
+                                            <t-tooltip content="brook.openwrt">
+                                                <t-tag shape="round" variant="outline">brook.openwrt</t-tag>
+                                            </t-tooltip>
+                                            <t-tooltip :content="zh ? '需要安装 CA' : 'Need to install CA'">
+                                                <t-tag shape="round" theme="warning" variant="outline" v-if="item.ca">CA</t-tag>
+                                            </t-tooltip>
+                                        </div>
+                                        <div style="display: flex;gap:15px;" v-if="item.kind=='module'">
+                                            <t-tooltip content="Brook GUI Client">
+                                                <t-tag shape="round" variant="outline">Client</t-tag>
+                                            </t-tooltip>
+                                            <t-tooltip :content="zh ? '需要安装 CA' : 'Need to install CA'">
+                                                <t-tag shape="round" theme="warning" variant="outline" v-if="item.ca">CA</t-tag>
+                                            </t-tooltip>
+                                        </div>
+                                        <t-link v-if="item.expanded" :href="item.author_url" target="_blank">
+                                            <t-tooltip :content="zh ? '作者' : 'Author'">
+                                                <t-tag variant="outline"><template #icon><t-icon name="user-circle"></t-icon></template>{{item.author}}</t-tag>
+                                            </t-tooltip>
+                                        </t-link>
+                                    </div>
+                                </div>
+                            </t-card>
+                        </div>
+                    </div>
+                    <div style="display: flex;justify-content:center;padding:15px;">
+                        <t-link href="https://www.txthinking.com" target="_blank" style="color:grey">TxThinking</t-link>
+                    </div>
+                    <t-back-top shape="circle" container="#top" style="position: fixed" :offset="['24px', '80px']"></t-back-top>
+                </div>
+            </t-content>
+        </t-layout>
+        <t-loading :loading="ing" :text="zh ? '请求中...' : 'Requesting...'" fullscreen></t-loading>
+        <t-dialog theme="danger" header="Error" :body="error" :visible.sync="err" @confirm="confirm" @close="close" :cancel-btn="null" :confirm-btn="zh ? '了解' : 'Got'" :close-on-overlay-click="false" :close-on-esc-keydown="false"></t-dialog>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,18 @@
+// Note: 因为大部分应用请求都是 domain address，只有少量会直接请求 IP address，此模块仅处理后者
+
+// Bypass Geo IP
+modules = append(modules, {
+    address: func(m) {
+        if m.ipaddress {
+            brook := import("brook")
+            r := brook.splithostport(m.ipaddress)
+            if is_error(r) {
+                return r
+            }
+            s := brook.country(r.host)
+            if s == "ZZ" || s == "CN" { // All private IPs are ZZ
+                return { bypass: true }
+            }
+        }
+    }
+})

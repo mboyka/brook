@@ -1,0 +1,36 @@
+// A sample for modifing response, try https://ifconfig.co/json
+// [CA]
+modules = append(modules, {
+    address: func(m) {
+        if m.network == "tcp" && m.domainaddress {
+            if m.domainaddress == "ifconfig.co:443" {
+                return { mitm: true, mitmprotocol: "https", mitmhandlebody: true}
+            }
+            if m.domainaddress == "ifconfig.co:80" {
+                return { mitm: true, mitmprotocol: "http", mitmhandlebody: true }
+            }
+            return
+        }
+        if m.network == "udp" && m.domainaddress {
+            if m.domainaddress == "ifconfig.co:443" {
+                return { block: true }
+            }
+        }
+    },
+    httpresponse: func(request, response) {
+        if request["URL"] == "http://ifconfig.co/json" || request["URL"] == "https://ifconfig.co/json" {
+            delete(response, "Alt-Svc") // Avoid upgrading to http3 from http1 or http2
+            delete(response, "Content-Security-Policy")
+            json := import("json")
+            j := json.decode(response["Body"])
+            if is_error(j) {
+                return j
+            }
+            j.brook = "一曲肝长断！"
+            j.shiliew = "天涯何处觅知音！"
+            response["Body"] = json.encode(j)
+            return response
+        }
+        return response
+    }
+})
